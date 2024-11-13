@@ -1,0 +1,12 @@
+[submodule "src/Stage"]
+	path = src/Stage
+	url = https://github.com/tuw-robotics/Stage.git
+	branch = ros2
+[submodule "src/stage_ros2"]
+	path = src/stage_ros2
+	url = https://github.com/tuw-robotics/stage_ros2.git
+	branch = humble
+[submodule "ACADOtoolkit"]
+	path = ACADOtoolkit
+	url = https://github.com/acado/acado.git
+	branch = stable
