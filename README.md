@@ -13,13 +13,13 @@ sudo bash ./install_dependencies.sh
 ```
 
 Задачи:
-1. Контроллер управления движением по траектории [GitHub]() [Файл](./src/simple_controller/readme.md)
-2. Контроллер управления скоростью [GitHub]() [Файл](./src/velocity_controller/readme.md)
-3. MPC контроллер [GitHub]() [Файл](./src/mpc_controller/readme.md)
-4. Планирование траектории [GitHub]() [Файл](./src/trajectory_planner/readme.md)
-5. Построение карты [GitHub]() [Файл](./src/mapping/readme.md)
-6. Локализация по дальномеру [GitHub]() [Файл](./src/localization/readme.md)
-7. EKF SLAM [GitHub]() [Файл](./src/ekf_slam/readme.md)
+1. [Контроллер управления движением по траектории](./src/simple_controller/readme.md)
+2. [Контроллер управления скоростью](./src/velocity_controller/readme.md)
+3. [MPC контроллер](./src/mpc_controller/readme.md)
+4. [Планирование траектории](./src/trajectory_planner/readme.md)
+5. [Построение карты](./src/mapping/readme.md)
+6. [Локализация по дальномеру](./src/localization/readme.md)
+7. [EKF SLAM](./src/ekf_slam/readme.md)
 
 
 
@@ -38,10 +38,10 @@ sudo bash ./install_dependencies.sh
 ```
 
 Tasks:
-1. Trajectory Motion Control Controller [GitHub]() [File](./src/simple_controller/readme.md)
-2. Speed Control controller [GitHub]() [File](./src/velocity_controller/readme.md)
-3. MPC controller [GitHub]() [File](./src/mpc_controller/readme.md)
-4. Trajectory Planning [GitHub]() [File](./src/trajectory_planner/readme.md)
-5. Building a map [GitHub]() [File](./src/mapping/readme.md)
-6. Localization by rangefinder [GitHub]() [File](./src/localization/readme.md)
-7. EKF SLAM [GitHub]() [File](./src/ekf_slam/readme.md)
+1. [Trajectory Motion Control Controller](./src/simple_controller/readme.md)
+2. [Speed Control controller](./src/velocity_controller/readme.md)
+3. [MPC controller](./src/mpc_controller/readme.md)
+4. [Trajectory Planning](./src/trajectory_planner/readme.md)
+5. [Building a map](./src/mapping/readme.md)
+6. [Localization by rangefinder](./src/localization/readme.md)
+7. [EKF SLAM](./src/ekf_slam/readme.md)
