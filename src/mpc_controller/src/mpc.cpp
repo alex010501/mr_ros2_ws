@@ -1,24 +1,62 @@
-#include <my_mpc_controller/mpc.h>
+#include <mpc_controller/mpc.h>
 
 namespace mpc_controller
 {
-
-    MPC::MPC(int steps, double dt, double max_vel, double max_acc, double max_delta, double max_delta_rate, double L,
-             double kcte, double kepsi, double kv, double ksteer_cost) :
-
-                                                                         t_end(steps * dt),
-                                                                         steps(steps),
-                                                                         max_vel(max_vel),
-                                                                         max_acc(max_acc),
-                                                                         max_delta(max_delta),
-                                                                         max_delta_rate(max_delta_rate),
-                                                                         L(L),
-                                                                         kcte(kcte),
-                                                                         kepsi(kepsi),
-                                                                         kev(kv),
-                                                                         ksteer_cost(ksteer_cost)
+    MPC::MPC()
     {
-        // discrete time system
+        t_end = 0;
+        steps = 0;
+
+        max_vel = 0;
+        max_acc = 0;
+        max_delta = 0;
+        max_delta_rate = 0;
+        L = 0;
+        kcte = 0;
+        kepsi = 0;
+        kev = 0;
+        ksteer_cost = 0;
+    }
+
+    void MPC::init(int steps,
+             double dt,
+             double max_vel,
+             double max_acc,
+             double max_delta,
+             double max_delta_rate,
+             double L,
+             double kcte,
+             double kepsi,
+             double kv,
+             double ksteer_cost)
+    {
+        this->t_end = steps * dt;
+        this->t_end = steps * dt;
+        this->steps = steps;
+        this->max_vel = max_vel;
+        this->max_acc = max_acc;
+        this->max_delta = max_delta;
+        this->max_delta_rate = max_delta_rate;
+        this->L = L;
+        this->kcte = kcte;
+        this->kepsi = kepsi;
+        this->kev = kv;
+        this->ksteer_cost = ksteer_cost;
+
+        // std::cout << "MPC constructor" << std::endl;
+        // std::cout << "steps: " << steps << std::endl;
+        // std::cout << "dt: " << dt << std::endl;
+        // std::cout << "max_vel: " << max_vel << std::endl;
+        // std::cout << "max_acc: " << max_acc << std::endl;
+        // std::cout << "max_delta: " << max_delta << std::endl;
+        // std::cout << "max_delta_rate: " << max_delta_rate << std::endl;
+        // std::cout << "L: " << L << std::endl;
+        // std::cout << "kcte: " << kcte << std::endl;
+        // std::cout << "kepsi: " << kepsi << std::endl;
+        // std::cout << "kv: " << kv << std::endl;
+        // std::cout << "ksteer_cost: " << ksteer_cost << std::endl;
+
+        // Initialization of the differential equation
         f << dot(x) == vel * cos(fi);
         f << dot(y) == vel * sin(fi);
         f << dot(fi) == vel * tan(delta) / L;
@@ -26,22 +64,28 @@ namespace mpc_controller
         f << dot(vel) == acc;
     }
 
-    void MPC::solve(double v0, double delta0, std::vector<double> &traj_coef, double &rate_u, double &acc_u,
-                    std::vector<double> &res_x, std::vector<double> &res_y)
+    void MPC::solve(double v0,
+                    double delta0,
+                    std::vector<double> &traj_coef,
+                    double &rate_u,
+                    double &acc_u,
+                    std::vector<double> &res_x,
+                    std::vector<double> &res_y)
     {
-        ROS_DEBUG_STREAM("solve mpc for v0 = " << v0 << " angle0 = " << delta0);
-        assert(std::abs(delta0) < max_delta);
+        // std::cout << " delta0: " << delta0 << " max_delta: " << max_delta << std::endl;
+        // std::cin.get();
+        assert(std::abs(delta0) <= max_delta);
         ACADO::OCP ocp(t_start, t_end, steps);
         // constrains
         ocp.subjectTo(f);
-        ocp.subjectTo(AT_START, x == 0);
-        ocp.subjectTo(AT_START, y == 0);
-        ocp.subjectTo(AT_START, fi == 0);
+        ocp.subjectTo(ACADO::AT_START, x == 0);
+        ocp.subjectTo(ACADO::AT_START, y == 0);
+        ocp.subjectTo(ACADO::AT_START, fi == 0);
         ocp.subjectTo(-max_acc <= acc <= max_acc);
         ocp.subjectTo(-max_delta_rate <= delta_rate <= max_delta_rate);
         ocp.subjectTo(-max_delta <= delta <= max_delta);
-        ocp.subjectTo(AT_START, vel == v0);
-        ocp.subjectTo(AT_START, delta == delta0);
+        ocp.subjectTo(ACADO::AT_START, vel == v0);
+        ocp.subjectTo(ACADO::AT_START, delta == delta0);
 
         assert(traj_coef.size() == 4);
         double &a0 = traj_coef[0];
@@ -54,28 +98,19 @@ namespace mpc_controller
         ACADO::Expression epsi = pow(fi - atan(a1 + 2 * a2 * x + 3 * a3 * x * x), 2);
         ACADO::Expression verr = pow(vel - max_vel, 2);
         ACADO::Expression steer_cost = pow(delta_rate, 2);
-        //  double emax = std::max(0.25, a0*1.2);
-        //  ocp.subjectTo(cte <= emax);
 
         ocp.minimizeMayerTerm(kcte * cte + kepsi * epsi + kev * verr + ksteer_cost * steer_cost);
-        //  ocp.subjectTo(AT_END, cte <= 0.1);
-        //  ocp.subjectTo(AT_END, epsi <= 0.01);
 
         ACADO::OptimizationAlgorithm alg(ocp);
-        alg.set(PRINTLEVEL, NONE);
-        ROS_INFO_STREAM("start solving mpc");
+        alg.set(ACADO::PRINTLEVEL, ACADO::NONE);
         alg.solve();
-        ROS_INFO_STREAM("finished solving mpc");
         ACADO::VariablesGrid controls;
         alg.getControls(controls);
-        //  controls.print();
         ACADO::VariablesGrid states;
         alg.getDifferentialStates(states);
-        // states.print();
 
         rate_u = controls(0, 0);
         acc_u = controls(0, 1);
-        ROS_INFO_STREAM("delta = " << rate_u << " acc = " << acc_u);
 
         res_x.resize(states.getNumPoints());
         res_y.resize(res_x.size());
@@ -88,6 +123,6 @@ namespace mpc_controller
 
     MPC::~MPC()
     {
-    }
 
-} /* namespace mpc_controller */
+    }
+}

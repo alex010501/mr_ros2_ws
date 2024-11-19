@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package>
+  <name>cart_launch</name>
+  <version>0.0.0</version>
+  <description>The cart_launch package</description>
+
+  <maintainer email="aminin@todo.todo">aminin</maintainer>
+  <license>TODO</license>
+  <buildtool_depend>colcon</buildtool_depend>
+  <run_depend>ros2launch</run_depend>
+
+<export>
+  <build_type>ament_cmake</build_type>
+</export>
+
+</package>

@@ -1,4 +1,5 @@
 # Install ACADO toolkit
+sudo apt update && sudo apt upgrade -y
 sudo apt install git cmake g++ libjpeg8-dev libpng-dev libglu1-mesa-dev libltdl-dev libfltk1.1-dev
 cd ACADOtoolkit
 mkdir build
@@ -10,4 +11,7 @@ sudo make install
 cd ../..
 source /opt/ros/humble/setup.bash
 colcon build --symlink-install --packages-select Stage --cmake-args -DOpenGL_GL_PREFERENCE=LEGACY
-colcon build --symlink-install --packages-select stage_ros2 
+colcon build --symlink-install --packages-select stage_ros2
+colcon build --symlink-install --packages-select angles
+colcon build --symlink-install --packages-select stage_controller
+colcon build --packages-select cart_launch

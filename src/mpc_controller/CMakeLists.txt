@@ -1,51 +1,65 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.8)
 project(mpc_controller)
 
-if(NOT CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 17)
-endif()
-
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    add_compile_options(-Wall -Wextra -Wpedantic)
-endif()
-
-# find dependencies
+# Find dependencies
+find_package(ACADO REQUIRED)
 find_package(ament_cmake REQUIRED)
-
 find_package(rclcpp REQUIRED)
-
+find_package(nav_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
-find_package(geometry_msgs REQUIRED)
-
+find_package(angles REQUIRED)
 find_package(tf2 REQUIRED)
-find_package(tf2_ros REQUIRED)
-
-find_package(ACADO REQUIRED)
-
-find_package(Boost REQUIRED COMPONENTS system)
+find_package(tf2_geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 
-include_directories(
-    ${ACADO_INCLUDE_DIRS}
-    include
-)
-link_directories(${ACADO_LIBRARY_DIRS})
+# Find ACADO
+# include_directories(/usr/local/include)
+# link_directories(/usr/local/lib)
 
-add_executable(mpc_controller src/mpccontroller_node.cpp
+# Add source files
+add_executable(mpc_controller src/main.cpp
                               src/mpccontroller.cpp
                               src/mpc.cpp)
+target_include_directories(mpc_controller PUBLIC include ${ACADO_INCLUDE_DIRS})
+ament_target_dependencies(mpc_controller
+    rclcpp
+    nav_msgs
+    std_msgs
+    sensor_msgs
+    angles
+    tf2
+    tf2_geometry_msgs
+    Eigen3
+)
+target_link_libraries(mpc_controller ${ACADO_SHARED_LIBRARIES})
 
-ament_target_dependencies(mpc_controller rclcpp std_msgs sensor_msgs geometry_msgs tf2 tf2_ros)
-
-target_link_libraries(mpc_controller
-    ${ACADO_SHARED_LIBRARIES}
+# Install targets
+install(TARGETS mpc_controller
+    RUNTIME DESTINATION lib/${PROJECT_NAME}
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
 )
 
-add_executable(mpc_test src/mpc.cpp test/mpc_test.cpp)
-
-ament_target_dependencies(mpc_test rclcpp std_msgs sensor_msgs geometry_msgs tf2 tf2_ros)
-
-target_link_libraries(mpc_test
-    ${ACADO_SHARED_LIBRARIES}
+# Install headers
+install(DIRECTORY include/
+    DESTINATION include
 )
+
+# Install configuration files
+install(DIRECTORY config
+    DESTINATION share/${PROJECT_NAME}
+)
+
+# Install launch files
+install(DIRECTORY launch
+    DESTINATION share/${PROJECT_NAME}
+)
+
+# Install RQT and RViz configurations
+install(DIRECTORY rqt rviz
+    DESTINATION share/${PROJECT_NAME}
+)
+
+# Ament package
+ament_package()
