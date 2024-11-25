@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.8)
 project(mpc_controller)
 
+# Default to C++17
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
+endif()
+
 # Find dependencies
 find_package(ACADO REQUIRED)
 find_package(ament_cmake REQUIRED)
@@ -12,10 +17,6 @@ find_package(angles REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
-
-# Find ACADO
-# include_directories(/usr/local/include)
-# link_directories(/usr/local/lib)
 
 # Add source files
 add_executable(mpc_controller src/main.cpp

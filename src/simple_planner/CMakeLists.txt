@@ -17,7 +17,8 @@ find_package(sensor_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 
-add_executable(simple_planner src/simple_planner.cpp src/planner.cpp src/planner.h)
+include_directories(include)
+add_executable(simple_planner src/simple_planner.cpp src/planner.cpp)
 
 ament_target_dependencies(
   simple_planner

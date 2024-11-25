@@ -1,86 +1,73 @@
-import os
-import sys
-
-import launch
-import launch_ros.actions
-from ament_index_python.packages import get_package_share_directory
-
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import PathJoinSubstitution, FindPackageShare
+from launch_ros.actions import Node
 
 def generate_launch_description():
-    lifecycle_nodes = ['map_server']
-    use_sim_time = True
-    autostart = True
+    # Путь к stage_worlds
+    stage_worlds_path = PathJoinSubstitution(
+        [FindPackageShare("cart_launch"), "stage_worlds"]
+    )
 
-    ld = launch.LaunchDescription([
-        launch_ros.actions.Node(
-            package='stage_ros2',
-            executable='stage_ros2',
-            name='model',
-            parameters=[
-                {
-                    '/use_sim_time': True
-                },
-                {
-                    'world_file': get_package_share_directory('cart_launch') + '/stage_worlds/simple.world'
-                }
+    # Создание описания запуска
+    return LaunchDescription([
+        # Параметр симуляции времени
+        DeclareLaunchArgument(
+            "use_sim_time",
+            default_value="true",
+            description="Use simulation time"
+        ),
+
+        # Узел Stage
+        Node(
+            package="stage_ros",
+            executable="stageros",
+            name="model",
+            arguments=[PathJoinSubstitution([stage_worlds_path, "simple.world"])],
+            remappings=[
+                ("/odom", "/robot/odom"),
+                ("/base_pose_ground_truth", "/robot/base_pose_ground_truth")
             ]
         ),
 
-        launch_ros.actions.Node(
+        # Статическая трансформация map -> odom
+        Node(
             package="tf2_ros",
             executable="static_transform_publisher",
-            output="screen" ,
-            arguments=["0", "0", "0", "0", "0", "0", "map", "odom"]
-        ),
-    
-        launch_ros.actions.Node(
-                package='nav2_map_server',
-                executable='map_server',
-                output='screen',
-                parameters=[
-                    {
-                        "yaml_filename": get_package_share_directory('cart_launch') + '/stage_worlds/cave.yaml'
-                    }
-                ]
+            name="map_to_odom_transform_pub",
+            arguments=["0", "0", "0", "0", "0", "0", "map", "odom", "1000"]
         ),
 
-        launch_ros.actions.Node(
-                package='nav2_lifecycle_manager',
-                executable='lifecycle_manager',
-                name='lifecycle_manager',
-                output='screen',
-                emulate_tty=True,
-                parameters=[{'use_sim_time': use_sim_time},
-                            {'autostart': autostart},
-                            {'node_names': lifecycle_nodes}]
+        # Сервер карты
+        Node(
+            package="nav2_map_server",
+            executable="map_server",
+            name="map_server",
+            parameters=[{"yaml_filename": PathJoinSubstitution([stage_worlds_path, "cave.yaml"])}]
         ),
 
-        launch_ros.actions.Node(
-            package='simple_planner',
-            executable='simple_planner',
-            name='planner',
-            output='screen',
-            parameters=[
-                {
-                    '/use_sim_time': True
-                }
+        # Узел Planner
+        Node(
+            package="simple_planner",
+            executable="simple_planner",
+            name="planner",
+            output="screen",
+            remappings=[
+                ("/planner/target_pose", "/move_base_simple/goal"),
+                ("/planner/ground_truth", "/robot/base_pose_ground_truth")
             ]
         ),
-        launch_ros.actions.Node(
-            package='rviz2',
-            executable='rviz2',
-            name='rviz2',
-            output='screen',
-            parameters=[
-                {
-                    '/use_sim_time': True
-                }
-            ],
-            arguments=['-d', get_package_share_directory('simple_planner') + '/launch/planner.rviz']
-        )
+
+        # Узел RViz
+        Node(
+            package="rviz2",
+            executable="rviz2",
+            name="rviz",
+            output="screen",
+            arguments=[
+                "--display-config", PathJoinSubstitution(
+                    [FindPackageShare("simple_planner"), "launch", "planner.rviz"]
+                )
+            ]
+        ),
     ])
-    return ld
-
-
-# if __name__ == '__main__':
-#     generate_launch_description()
