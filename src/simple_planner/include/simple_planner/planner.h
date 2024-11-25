@@ -8,15 +8,12 @@
 #include <nav_msgs/srv/get_map.hpp>
 #include <sensor_msgs/msg/point_cloud.hpp>
 #include <limits>
-#include <vector>
 #include <queue>
-#include <set>
-#include <utility>
+#include <vector>
 
 namespace simple_planner
 {
 
-    // Структура поиска узлов
     struct SearchNode
     {
         enum State
@@ -25,13 +22,11 @@ namespace simple_planner
             OPEN,
             UNDEFINED
         };
-
         State state = UNDEFINED;
         double g = std::numeric_limits<double>::max();
         double h = 0;
     };
 
-    // Индекс карты
     struct MapIndex
     {
         int i;
@@ -41,7 +36,7 @@ namespace simple_planner
     class Planner : public rclcpp::Node
     {
     public:
-        Planner();
+        explicit Planner(const rclcpp::NodeOptions &options);
 
     private:
         friend class CompareSearchNodes;
@@ -52,39 +47,35 @@ namespace simple_planner
         void increase_obstacles(std::size_t cells);
         void calculate_path();
         double heuristic(int i, int j);
-
         bool indices_in_map(int i, int j);
         template <class T>
         T &map_value(std::vector<T> &data, int i, int j)
         {
             int index = j * map_.info.width + i;
-            RCLCPP_ASSERT(index < static_cast<int>(data.size()) && index >= 0);
+            assert(index < static_cast<int>(data.size()) && index >= 0);
             return data[index];
         }
-
         MapIndex point_index(double x, double y)
         {
             return {
-                static_cast<int>(std::floor((x - map_.info.origin.position.x) / map_.info.resolution)),
-                static_cast<int>(std::floor((y - map_.info.origin.position.y) / map_.info.resolution))};
+                static_cast<int>(floor((x - map_.info.origin.position.x) / map_.info.resolution)),
+                static_cast<int>(floor((y - map_.info.origin.position.y) / map_.info.resolution))};
         }
-
-        rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr pose_sub_;
-        rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr target_sub_;
-        rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr obstacle_map_publisher_;
-        rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr cost_map_publisher_;
-        rclcpp::Publisher<sensor_msgs::msg::PointCloud>::SharedPtr path_publisher_;
-        rclcpp::Client<nav_msgs::srv::GetMap>::SharedPtr map_server_client_;
 
         nav_msgs::msg::OccupancyGrid map_;
         nav_msgs::msg::OccupancyGrid obstacle_map_;
-        nav_msgs::msg::OccupancyGrid cost_map_;
+        std::vector<SearchNode> search_map_;
         sensor_msgs::msg::PointCloud path_msg_;
+
+        rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr obstacle_map_publisher_;
+        rclcpp::Publisher<sensor_msgs::msg::PointCloud>::SharedPtr path_publisher_;
+        rclcpp::Client<nav_msgs::srv::GetMap>::SharedPtr map_server_client_;
+        rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr pose_sub_;
+        rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr target_sub_;
+
         geometry_msgs::msg::Pose start_pose_;
         geometry_msgs::msg::Pose target_pose_;
         double robot_radius_;
-
-        std::vector<SearchNode> search_map_;
     };
 
 }

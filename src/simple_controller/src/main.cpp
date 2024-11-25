@@ -7,7 +7,7 @@ int main(int argc, char *argv[])
     rclcpp::init(argc, argv);
 
     // Start the ControllerNode
-    rclcpp::spin(std::make_shared<ControllerNode>());
+    rclcpp::spin(std::make_shared<simple_controller::Controller>());
 
     rclcpp::shutdown();
     return 0;

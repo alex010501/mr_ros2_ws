@@ -5,15 +5,14 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/time.hpp>
-#include <angles/angles.h>
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <std_msgs/msg/float32.hpp>
 #include <sensor_msgs/msg/point_cloud.hpp>
 #include <tf2/LinearMath/Quaternion.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
-#include <simple_controller/trajectory.h>
+#include <simple_controller/trajectory_segment.h>
 
 namespace simple_controller
 {
@@ -22,6 +21,8 @@ namespace simple_controller
     class Controller : public rclcpp::Node
     {
     private:
+        bool odo_received = false;
+
         double robot_x = 0.0;
         double robot_y = 0.0;
         double robot_theta = 0.0;
@@ -74,7 +75,6 @@ namespace simple_controller
         double cross_track_error();
         void update_robot_pose(double dt);
         void publish_trajectory();
-        void on_odo(const nav_msgs::msg::Odometry::SharedPtr msg);
         void publish_error(double error);
         nav_msgs::msg::Path create_path() const;
         std::size_t get_nearest_path_pose_index(int start_index, std::size_t search_len);

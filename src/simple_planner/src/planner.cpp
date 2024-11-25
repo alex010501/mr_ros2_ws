@@ -1,220 +1,286 @@
-#include <simple_planner/planner.h>
-
-#include <queue>
-#include <set>
 #include <cmath>
+#include <set>
+#include <queue>
 #include <utility>
 
-namespace simple_planner {
+#include <simple_planner/planner.h>
 
-const MapIndex neighbors[8] = {
-    {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}, {1, -1}
-};
-const int8_t kObstacleValue = 100;
-
-Planner::Planner(ros::NodeHandle& nh) : nh_(nh)
+namespace simple_planner
 {
-    while (!map_server_client_.waitForExistence(ros::Duration(1)))
-        ROS_INFO_STREAM("Waiting for map server...");
-    ROS_INFO_STREAM("Map server connected.");
-}
 
-void Planner::on_pose(const nav_msgs::Odometry& odom)
-{
-    start_pose_ = odom.pose.pose;
-}
+    const MapIndex neighbors[8] = {
+        {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}, {1, -1}};
+    const int8_t kObstacleValue = 100;
 
-void Planner::on_target(const geometry_msgs::PoseStamped& pose)
-{
-    ROS_INFO_STREAM("Goal received: " << pose.pose.position.x << ", " << pose.pose.position.y);
-    ROS_INFO_STREAM("Start position: " << start_pose_.position.x << ", " << start_pose_.position.y);
-    target_pose_ = pose.pose;
-
-    if (!update_static_map())
+    Planner::Planner(const rclcpp::NodeOptions &options)
+        : Node("simple_planner", options), robot_radius_(declare_parameter("robot_radius", 0.5))
     {
-        ROS_ERROR_STREAM("Cannot receive map.");
-        return;
+        obstacle_map_publisher_ = create_publisher<nav_msgs::msg::OccupancyGrid>("obstacle_map", 10);
+        path_publisher_ = create_publisher<sensor_msgs::msg::PointCloud>("path", 10);
+        map_server_client_ = create_client<nav_msgs::srv::GetMap>("/static_map");
+
+        pose_sub_ = create_subscription<nav_msgs::msg::Odometry>(
+            "ground_truth", 10, std::bind(&Planner::on_pose, this, std::placeholders::_1));
+
+        target_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>(
+            "target_pose", 10, std::bind(&Planner::on_target, this, std::placeholders::_1));
     }
 
-    increase_obstacles(std::ceil(robot_radius_ / map_.info.resolution));
-    obstacle_map_publisher_.publish(obstacle_map_);
-
-    calculate_path();
-
-    if (!path_msg_.points.empty())
+    void Planner::on_pose(const nav_msgs::msg::Odometry::SharedPtr odom)
     {
-        path_msg_.header.stamp = ros::Time::now();
-        path_msg_.header.frame_id = pose.header.frame_id;
-        path_publisher_.publish(path_msg_);
+        start_pose_ = odom->pose.pose;
     }
-    else
-        ROS_WARN_STREAM("Path not found!");
-}
 
-bool Planner::update_static_map()
-{
-    nav_msgs::GetMap service;
-    if (!map_server_client_.call(service))
+    void Planner::on_target(const geometry_msgs::msg::PoseStamped::SharedPtr pose)
     {
-        ROS_ERROR_STREAM("Failed to receive a map.");
-        return false;
-    }
-    map_ = service.response.map;
-    ROS_INFO_STREAM("Map received: " << map_.info.width << " x " << map_.info.height);
-    return true;
-}
+        RCLCPP_INFO(get_logger(), "Received goal: [%f, %f]", pose->pose.position.x, pose->pose.position.y);
+        target_pose_ = pose->pose;
 
-bool Planner::indices_in_map(int i, int j)
-{
-    return i >= 0 && j >= 0 && i < map_.info.width && j < map_.info.height;
-}
-
-void Planner::increase_obstacles(std::size_t cells)
-{
-    obstacle_map_.info = map_.info;
-    obstacle_map_.header = map_.header;
-    obstacle_map_.data.resize(map_.data.size());
-    obstacle_map_.data = map_.data;
-
-    std::queue<MapIndex> wave;
-    for (int i = 0; i < map_.info.width; ++i)
-    {
-        for (int j = 0; j < map_.info.height; ++j)
+        if (!update_static_map())
         {
-            if (map_value(map_.data, i, j) != kObstacleValue)
-                continue;
+            RCLCPP_ERROR(get_logger(), "Failed to update map");
+            return;
+        }
 
-            for (const auto& shift : neighbors)
-            {
-                int neighbor_i = i + shift.i;
-                int neighbor_j = j + shift.j;
-                if (!indices_in_map(neighbor_i, neighbor_j))
-                    continue;
+        increase_obstacles(static_cast<std::size_t>(std::ceil(robot_radius_ / map_.info.resolution)));
+        obstacle_map_publisher_->publish(obstacle_map_);
+        calculate_path();
 
-                if (map_value(map_.data, neighbor_i, neighbor_j) != kObstacleValue)
-                {
-                    wave.push({i, j});
-                    break;
-                }
-            }
+        if (!path_msg_.points.empty())
+        {
+            path_msg_.header.stamp = now();
+            path_msg_.header.frame_id = pose->header.frame_id;
+            path_publisher_->publish(path_msg_);
+        }
+        else
+        {
+            RCLCPP_WARN(get_logger(), "No path found!");
         }
     }
 
-    for (std::size_t step = 0; step < cells; ++step)
+    bool Planner::update_static_map()
     {
-        std::queue<MapIndex> next_wave;
-        while (!wave.empty())
+        auto request = std::make_shared<nav_msgs::srv::GetMap::Request>();
+        auto response = map_server_client_->async_send_request(request);
+        if (rclcpp::spin_until_future_complete(shared_from_this(), response) != rclcpp::FutureReturnCode::SUCCESS)
         {
-            auto indices = wave.front();
-            wave.pop();
-            for (const auto& shift : neighbors)
+            RCLCPP_ERROR(get_logger(), "Failed to call map server");
+            return false;
+        }
+        map_ = response.get()->map;
+        RCLCPP_INFO(get_logger(), "Map updated: [%d x %d]", map_.info.width, map_.info.height);
+        return true;
+    }
+
+    bool Planner::indices_in_map(int i, int j)
+    {
+        return i >= 0 && j >= 0 && i < static_cast<int>(map_.info.width) && j < static_cast<int>(map_.info.height);
+    }
+
+    void Planner::increase_obstacles(std::size_t cells)
+    {
+        obstacle_map_.info = map_.info;
+        obstacle_map_.header = map_.header;
+        obstacle_map_.data = map_.data;
+
+        std::queue<MapIndex> wave;
+        for (int i = 0; i < static_cast<int>(map_.info.width); ++i)
+        {
+            for (int j = 0; j < static_cast<int>(map_.info.height); ++j)
             {
-                auto neighbor_index = indices;
-                neighbor_index.i += shift.i;
-                neighbor_index.j += shift.j;
+                if (map_value(map_.data, i, j) != kObstacleValue)
+                {
+                    continue;
+                }
+
+                for (const auto &shift : neighbors)
+                {
+                    int neighbor_i = i + shift.i;
+                    int neighbor_j = j + shift.j;
+                    if (!indices_in_map(neighbor_i, neighbor_j))
+                    {
+                        continue;
+                    }
+                    if (map_value(map_.data, neighbor_i, neighbor_j) != kObstacleValue)
+                    {
+                        wave.push({i, j});
+                        break;
+                    }
+                }
+            }
+        }
+
+        for (std::size_t step = 0; step < cells; ++step)
+        {
+            std::queue<MapIndex> next_wave;
+            while (!wave.empty())
+            {
+                auto indices = wave.front();
+                wave.pop();
+                for (const auto &shift : neighbors)
+                {
+                    auto neighbor_index = indices;
+                    neighbor_index.i += shift.i;
+                    neighbor_index.j += shift.j;
+                    if (!indices_in_map(neighbor_index.i, neighbor_index.j))
+                    {
+                        continue;
+                    }
+                    if (map_value(obstacle_map_.data, neighbor_index.i, neighbor_index.j) != kObstacleValue)
+                    {
+                        map_value(obstacle_map_.data, neighbor_index.i, neighbor_index.j) = kObstacleValue;
+                        next_wave.push(neighbor_index);
+                    }
+                }
+            }
+            wave.swap(next_wave);
+        }
+    }
+
+    double Planner::heuristic(int i, int j)
+    {
+        int target_i = point_index(target_pose_.position.x, target_pose_.position.y).i;
+        int target_j = point_index(target_pose_.position.x, target_pose_.position.y).j;
+        return std::hypot(target_i - i, target_j - j);
+    }
+
+    class CompareSearchNodes
+    {
+    public:
+        explicit CompareSearchNodes(Planner &planner) : planner_(planner) {}
+        bool operator()(const MapIndex &left_index, const MapIndex &right_index) const
+        {
+            SearchNode &left = planner_.map_value(planner_.search_map_, left_index.i, left_index.j);
+            SearchNode &right = planner_.map_value(planner_.search_map_, right_index.i, right_index.j);
+            if (left.g + left.h == right.g + right.h)
+            {
+                if (left_index.i == right_index.i)
+                {
+                    return left_index.j < right_index.j;
+                }
+                return left_index.i < right_index.i;
+            }
+            return left.g + left.h < right.g + right.h;
+        }
+
+    private:
+        Planner &planner_;
+    };
+
+    void Planner::calculate_path()
+    {
+        search_map_.resize(map_.data.size());
+        std::fill(search_map_.begin(), search_map_.end(), SearchNode());
+        path_msg_.points.clear();
+
+        // Очередь для узлов поиска
+        std::set<MapIndex, CompareSearchNodes> queue(CompareSearchNodes(*this));
+        MapIndex start_index = point_index(start_pose_.position.x, start_pose_.position.y);
+        SearchNode &start = map_value(search_map_, start_index.i, start_index.j);
+        start.g = 0;
+        start.h = heuristic(start_index.i, start_index.j);
+        start.state = SearchNode::OPEN;
+
+        auto &start_obstacle_value = map_value(obstacle_map_.data, start_index.i, start_index.j);
+        if (start_obstacle_value == kObstacleValue)
+        {
+            RCLCPP_WARN(get_logger(), "Start is in obstacle!");
+            return;
+        }
+        queue.insert(start_index);
+
+        MapIndex target_index = point_index(target_pose_.position.x, target_pose_.position.y);
+        bool found = false;
+
+        // Основной цикл A*
+        while (!queue.empty())
+        {
+            auto node_index_iter = queue.begin();
+            auto node_index = *node_index_iter;
+            auto &node = map_value(search_map_, node_index.i, node_index.j);
+            node.state = SearchNode::CLOSE;
+            queue.erase(node_index_iter);
+
+            // Если мы достигли целевой точки
+            if (node_index.i == target_index.i && node_index.j == target_index.j)
+            {
+                found = true;
+                break;
+            }
+
+            // Обработка соседей
+            for (const auto &shift : neighbors)
+            {
+                MapIndex neighbor_index{node_index.i + shift.i, node_index.j + shift.j};
+
                 if (!indices_in_map(neighbor_index.i, neighbor_index.j))
                     continue;
-                
-                if (map_value(obstacle_map_.data, neighbor_index.i, neighbor_index.j) != kObstacleValue)
+
+                auto &neighbor = map_value(search_map_, neighbor_index.i, neighbor_index.j);
+                if (neighbor.state == SearchNode::CLOSE)
+                    continue;
+
+                double tentative_g = node.g + std::hypot(shift.i, shift.j) * map_.info.resolution;
+
+                if (map_value(obstacle_map_.data, neighbor_index.i, neighbor_index.j) == kObstacleValue)
+                    continue;
+
+                if (neighbor.state != SearchNode::OPEN || tentative_g < neighbor.g)
                 {
-                    map_value(obstacle_map_.data, neighbor_index.i, neighbor_index.j) = kObstacleValue;
-                    next_wave.push(neighbor_index);
+                    neighbor.g = tentative_g;
+                    neighbor.h = heuristic(neighbor_index.i, neighbor_index.j);
+                    neighbor.state = SearchNode::OPEN;
+
+                    queue.insert(neighbor_index);
                 }
             }
         }
-        wave.swap(next_wave);
-    }
-}
 
-double Planner::heruistic(int i, int j)
-{
-    // Манхэттенское расстояние как эвристика
-    double dx = std::abs(target_pose_.position.x - (i * map_.info.resolution + map_.info.origin.position.x));
-    double dy = std::abs(target_pose_.position.y - (j * map_.info.resolution + map_.info.origin.position.y));
-    return dx + dy;
-}
-
-void Planner::calculate_path()
-{
-    search_map_.resize(map_.data.size());
-    std::fill(search_map_.begin(), search_map_.end(), SearchNode());
-    path_msg_.points.clear();
-
-    std::set<MapIndex, CompareSearchNodes> queue(CompareSearchNodes(*this));
-    MapIndex start_index = point_index(start_pose_.position.x, start_pose_.position.y);
-    MapIndex target_index = point_index(target_pose_.position.x, target_pose_.position.y);
-
-    if (map_value(obstacle_map_.data, start_index.i, start_index.j) == kObstacleValue)
-    {
-        ROS_WARN_STREAM("Start is in an obstacle!");
-        return;
-    }
-
-    auto& start_node = map_value(search_map_, start_index.i, start_index.j);
-    start_node.g = 0;
-    start_node.h = heruistic(start_index.i, start_index.j);
-    start_node.state = SearchNode::OPEN;
-
-    queue.insert(start_index);
-
-    bool found = false;
-
-    while (!queue.empty())
-    {
-        auto current_index = *queue.begin();
-        queue.erase(queue.begin());
-
-        auto& current_node = map_value(search_map_, current_index.i, current_index.j);
-        current_node.state = SearchNode::CLOSE;
-
-        if (current_index.i == target_index.i && current_index.j == target_index.j)
+        // Восстановление пути, если найден
+        if (found)
         {
-            found = true;
-            break;
-        }
+            int i = target_index.i;
+            int j = target_index.j;
+            geometry_msgs::msg::Point32 p;
 
-        for (const auto& neighbor_shift : neighbors)
-        {
-            MapIndex neighbor_index = {current_index.i + neighbor_shift.i, current_index.j + neighbor_shift.j};
-
-            if (!indices_in_map(neighbor_index.i, neighbor_index.j))
-                continue;
-
-            if (map_value(obstacle_map_.data, neighbor_index.i, neighbor_index.j) == kObstacleValue)
-                continue;
-
-            auto& neighbor_node = map_value(search_map_, neighbor_index.i, neighbor_index.j);
-            if (neighbor_node.state == SearchNode::CLOSE)
-                continue;
-
-            double tentative_g = current_node.g + map_.info.resolution;
-
-            if (neighbor_node.state == SearchNode::UNDEFINED || tentative_g < neighbor_node.g)
+            while (i != start_index.i || j != start_index.j)
             {
-                neighbor_node.g = tentative_g;
-                neighbor_node.h = heruistic(neighbor_index.i, neighbor_index.j);
-                neighbor_node.state = SearchNode::OPEN;
-                queue.insert(neighbor_index);
+                p.x = i * map_.info.resolution + map_.info.origin.position.x;
+                p.y = j * map_.info.resolution + map_.info.origin.position.y;
+                path_msg_.points.push_back(p);
+
+                auto &current_node = map_value(search_map_, i, j);
+                double min_g = current_node.g;
+
+                for (const auto &shift : neighbors)
+                {
+                    int neighbor_i = i + shift.i;
+                    int neighbor_j = j + shift.j;
+
+                    if (!indices_in_map(neighbor_i, neighbor_j))
+                        continue;
+
+                    auto &neighbor_node = map_value(search_map_, neighbor_i, neighbor_j);
+                    if (neighbor_node.state == SearchNode::CLOSE && neighbor_node.g < min_g)
+                    {
+                        min_g = neighbor_node.g;
+                        i = neighbor_i;
+                        j = neighbor_j;
+                    }
+                }
             }
-        }
-    }
 
-    if (found)
-    {
-        geometry_msgs::Point32 point;
-        for (MapIndex index = target_index;
-             index.i != start_index.i || index.j != start_index.j;
-             index = map_value(search_map_, index.i, index.j).parent_index)
+            // Добавляем начальную точку в путь
+            p.x = start_index.i * map_.info.resolution + map_.info.origin.position.x;
+            p.y = start_index.j * map_.info.resolution + map_.info.origin.position.y;
+            path_msg_.points.push_back(p);
+
+            std::reverse(path_msg_.points.begin(), path_msg_.points.end());
+        }
+        else
         {
-            point.x = index.i * map_.info.resolution + map_.info.origin.position.x;
-            point.y = index.j * map_.info.resolution + map_.info.origin.position.y;
-            path_msg_.points.push_back(point);
+            RCLCPP_WARN(get_logger(), "Path not found!");
         }
-        std::reverse(path_msg_.points.begin(), path_msg_.points.end());
     }
-    else
-        ROS_WARN_STREAM("Path not found.");
-    
-}
 
-}
+} // namespace simple_planner

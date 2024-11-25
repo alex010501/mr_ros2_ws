@@ -24,9 +24,9 @@ def generate_launch_description():
     )
 
     # Узел simple_controller
-    controller_node = Node(
+    simple_controller = Node(
         package='simple_controller',
-        executable='controller_node',
+        executable='simple_controller',
         name='controller',
         output='log',
         parameters=[
@@ -75,7 +75,7 @@ def generate_launch_description():
     return LaunchDescription([
         world_arg,
         cart_stage_launch,
-        controller_node,
+        simple_controller,
         velocity_node,
         map_node,
         rviz_node

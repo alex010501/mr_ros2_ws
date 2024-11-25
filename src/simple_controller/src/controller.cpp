@@ -26,8 +26,8 @@ namespace simple_controller
 
     void Controller::on_odo(const nav_msgs::msg::Odometry::SharedPtr odom)
     {
-        odo_received_ = true;
-        odo_sub_.reset(); // Unsubscribe after first odometry message
+        odo_received = true;
+        odo_sub.reset(); // Unsubscribe after first odometry message
         RCLCPP_DEBUG(this->get_logger(), "Odometry received");
     }
 
@@ -79,7 +79,7 @@ namespace simple_controller
 
     void Controller::initialize_controller()
     {
-        if (!odo_received_)
+        if (!odo_received)
         {
             RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 5000, "Waiting for odometry...");
             return;
@@ -91,12 +91,24 @@ namespace simple_controller
         double i_factor = this->get_parameter("integral").as_double();
 
         // Configure the controller with parameters
-        controller_->reset(p_factor, d_factor, i_factor);
+        this->reset(p_factor, d_factor, i_factor);
 
         RCLCPP_INFO(this->get_logger(), "Controller initialized with P: %f, D: %f, I: %f", p_factor, d_factor, i_factor);
 
         // Shutdown the timer as it's no longer needed
-        init_timer_.reset();
+        init_timer.reset();
+    }
+
+    void Controller::reset(double p_factor, double d_factor, double i_factor)
+    {
+        this->p_factor = p_factor;
+        this->d_factor = d_factor;
+        this->i_factor = i_factor;
+    }
+
+    void Controller::reset()
+    {
+        this->reset(1.0, 0.0, 0.0);
     }
 
     Controller::Controller() : Node("simple_controller")
@@ -107,7 +119,7 @@ namespace simple_controller
         d_factor = this->declare_parameter("differential", 0.0);
         i_factor = this->declare_parameter("integral", 0.0);
         
-        init_timer_ = this->create_wall_timer(std::chrono::milliseconds(100), std::bind(&Controller::initialize_controller, this))
+        init_timer = this->create_wall_timer(std::chrono::milliseconds(100), std::bind(&Controller::initialize_controller, this));
 
         odo_sub = this->create_subscription<nav_msgs::msg::Odometry>("odom", 10, std::bind(&Controller::on_odo, this, std::placeholders::_1));
         pose_sub = this->create_subscription<nav_msgs::msg::Odometry>("ground_truth", 10, std::bind(&Controller::on_pose, this, std::placeholders::_1));
