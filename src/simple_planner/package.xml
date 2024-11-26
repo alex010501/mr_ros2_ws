@@ -1,21 +1,26 @@
 <?xml version="1.0"?>
-<package format="3">
+<package>
   <name>simple_planner</name>
-  <version>0.1.0</version>
-  <description>The simple_planner package</description>
+  <version>0.0.0</version>
+  <description>The simple stage planner package</description>
   <maintainer email="aminin@todo.todo">aminin</maintainer>
-  <license>Apache 2.0</license>
 
-  <buildtool_depend>ament_cmake</buildtool_depend>
+  <license>TODO</license>
 
-  <depend>rclcpp</depend>
-  <depend>std_msgs</depend>
-  <depend>geometry_msgs</depend>
-  <depend>nav_msgs</depend>
-  <depend>tf2</depend>
-  <depend>tf2_ros</depend>
-  <depend>sensor_msgs</depend>
+  <buildtool_depend>colcon</buildtool_depend>
+  <build_depend>rclcpp</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>tf2</build_depend>
+  <run_depend>rclcpp</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>nav_msgs</run_depend>
+  <run_depend>tf2</run_depend>
 
-  <export>
-  </export>
+<export>
+  <build_type>ament_cmake</build_type>
+</export>
+
 </package>

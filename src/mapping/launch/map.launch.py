@@ -24,9 +24,9 @@ def generate_launch_description():
     )
 
     # Узел simple_controller
-    simple_controller = Node(
+    controller_node = Node(
         package='simple_controller',
-        executable='simple_controller',
+        executable='controller_node',
         name='controller',
         output='log',
         parameters=[
@@ -42,18 +42,24 @@ def generate_launch_description():
     )
 
     # Узел для отправки команды скорости
+    # velocity_node = Node(
+    #     package='ros2topic',
+    #     executable='pub',
+    #     name='vel_node',
+    #     arguments=['/robot/velocity', 'std_msgs/Float32', '2.0', '-r1'],
+    #     output='screen'
+    # )
     velocity_node = Node(
-        package='ros2topic',
-        executable='pub',
+        package='vel_pub',
+        executable='velocity_publisher',
         name='vel_node',
-        arguments=['/robot/velocity', 'std_msgs/Float32', '2.0', '-r1'],
         output='screen'
     )
 
     # Узел карты
     map_node = Node(
-        package='simple_map',
-        executable='simple_map_node',
+        package='mapping',
+        executable='mapping',
         name='map',
         output='screen',
         remappings=[
@@ -67,7 +73,7 @@ def generate_launch_description():
         executable='rviz2',
         name='rviz',
         arguments=['--display-config', PathJoinSubstitution(
-            [FindPackageShare('simple_map'), 'cfg', 'map.rviz']
+            [FindPackageShare('mapping'), 'rviz', 'map.rviz']
         )],
         output='screen'
     )
@@ -75,7 +81,7 @@ def generate_launch_description():
     return LaunchDescription([
         world_arg,
         cart_stage_launch,
-        simple_controller,
+        controller_node,
         velocity_node,
         map_node,
         rviz_node

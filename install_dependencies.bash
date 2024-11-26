@@ -11,4 +11,4 @@ sudo make install
 cd ../..
 source /opt/ros/humble/setup.bash
 colcon build --symlink-install --packages-select Stage --cmake-args -DOpenGL_GL_PREFERENCE=LEGACY
-colcon build --symlink-install --packages-select stage_ros2 angles stage_controller simple_controller simple_planner cart_launch
+colcon build --symlink-install --packages-select stage_ros2 angles stage_controller simple_controller simple_planner cart_launch vel_pub

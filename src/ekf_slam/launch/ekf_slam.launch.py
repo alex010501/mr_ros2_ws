@@ -56,12 +56,19 @@ def generate_launch_description():
     )
 
     # Узел публикации скорости
+    # vel_pub_node = Node(
+    #     package='rostopic',
+    #     executable='rostopic',
+    #     name='vel_node',
+    #     arguments=['pub', '/robot/velocity', 'std_msgs/Float32', '2.0', '-r1']
+    # )
     vel_pub_node = Node(
-        package='rostopic',
-        executable='rostopic',
+        package='vel_pub',
+        executable='velocity_publisher',
         name='vel_node',
-        arguments=['pub', '/robot/velocity', 'std_msgs/Float32', '2.0', '-r1']
+        output='screen'
     )
+
 
     # Узел RViz
     rviz_node = Node(
@@ -69,7 +76,7 @@ def generate_launch_description():
         executable='rviz2',
         name='rviz',
         arguments=['--display-config', PathJoinSubstitution([
-            FindPackageShare('barrel_slam'), 'launch', 'slam.rviz'
+            FindPackageShare('ekf_slam'), 'launch', 'slam.rviz'
         ])]
     )
 
