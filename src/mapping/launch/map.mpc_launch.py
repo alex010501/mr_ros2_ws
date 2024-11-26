@@ -8,19 +8,20 @@ import os
 
 def generate_launch_description():
     # Get package directories
+    mapping_dir = get_package_share_directory('mapping')
     mpc_package_dir = get_package_share_directory('mpc_controller')
     cart_launch_dir = get_package_share_directory('cart_launch')
 
     # Paths to configuration files
     param_file_path = os.path.join(mpc_package_dir, 'config', 'controller.yaml')
     rqt_perspective_path = os.path.join(mpc_package_dir, 'rqt', 'steer_error.perspective')
-    rviz_config_path = os.path.join(mpc_package_dir, 'rviz', 'traj.rviz')
+    rviz_config_path = os.path.join(mapping_dir, 'rviz', 'map.rviz')
 
     # Include cart_stage launch
     cart_stage_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(cart_launch_dir, 'launch', 'cart_stage.launch.py')),
         launch_arguments={
-            'world': os.path.join(cart_launch_dir, 'stage_worlds', 'empty.world'),
+            'world': os.path.join(cart_launch_dir, 'stage_worlds', 'mapping.world'),
             'control_velocity': 'true',
             'velocity_noise': '0.0'
         }.items()
@@ -37,12 +38,16 @@ def generate_launch_description():
             name='controller',
             parameters=[{'use_sim_time': True}, param_file_path],
             output='screen'
-            # remappings=[
-            #     ('ground_truth', '/robot/base_pose_ground_truth'),
-            #     ('odom', '/robot/odom'),
-            #     ('/steering', '/robot/steering'),
-            #     ('/velocity', '/robot/velocity')
-            # ]
+        ),
+
+        Node(
+            package='mapping',
+            executable='mapping',
+            name='map',
+            output='screen',
+            remappings=[
+                ('scan', 'base_scan'),
+            ]
         ),
 
         # ExecuteProcess to launch RQT

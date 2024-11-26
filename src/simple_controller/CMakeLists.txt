@@ -22,10 +22,7 @@ find_package(tf2 REQUIRED)
 
 # find_package(Boost REQUIRED COMPONENTS system)
 
-add_executable(controller_node src/controller_node.cpp
-              src/controller.cpp
-              src/controller.h
-              include/trajectory_segment.h)
+add_executable(controller_node src/controller.cpp src/main.cpp)
 
 ament_target_dependencies(
   controller_node

@@ -43,19 +43,6 @@ namespace mpc_controller
         this->kev = kv;
         this->ksteer_cost = ksteer_cost;
 
-        // std::cout << "MPC constructor" << std::endl;
-        // std::cout << "steps: " << steps << std::endl;
-        // std::cout << "dt: " << dt << std::endl;
-        // std::cout << "max_vel: " << max_vel << std::endl;
-        // std::cout << "max_acc: " << max_acc << std::endl;
-        // std::cout << "max_delta: " << max_delta << std::endl;
-        // std::cout << "max_delta_rate: " << max_delta_rate << std::endl;
-        // std::cout << "L: " << L << std::endl;
-        // std::cout << "kcte: " << kcte << std::endl;
-        // std::cout << "kepsi: " << kepsi << std::endl;
-        // std::cout << "kv: " << kv << std::endl;
-        // std::cout << "ksteer_cost: " << ksteer_cost << std::endl;
-
         // Initialization of the differential equation
         f << dot(x) == vel * cos(fi);
         f << dot(y) == vel * sin(fi);
@@ -72,8 +59,6 @@ namespace mpc_controller
                     std::vector<double> &res_x,
                     std::vector<double> &res_y)
     {
-        // std::cout << " delta0: " << delta0 << " max_delta: " << max_delta << std::endl;
-        // std::cin.get();
         assert(std::abs(delta0) <= max_delta);
         ACADO::OCP ocp(t_start, t_end, steps);
         // constrains

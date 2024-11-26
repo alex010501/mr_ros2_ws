@@ -13,7 +13,6 @@ class VelocityPublisher(Node):
         msg = Float32()
         msg.data = 2.0
         self.publisher_.publish(msg)
-        self.get_logger().info(f'Publishing: {msg.data}')
 
 def main(args=None):
     rclpy.init(args=args)

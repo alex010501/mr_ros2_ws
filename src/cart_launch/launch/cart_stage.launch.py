@@ -16,7 +16,7 @@ def generate_launch_description():
                 '/use_sim_time': True
             },
             {
-                'world_file': get_package_share_directory('cart_launch') + '/stage_worlds/empty.world'
+                'world_file': launch.substitutions.LaunchConfiguration('world', default=get_package_share_directory('cart_launch') + '/stage_worlds/empty.world')
             }
         ]
     )
@@ -116,7 +116,7 @@ def generate_launch_description():
         ),
         stage_node,
         stage_controller,
-        stage_throttle,
+        # stage_throttle,
     ])
 
 

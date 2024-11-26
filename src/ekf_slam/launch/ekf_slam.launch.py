@@ -1,90 +1,68 @@
 from launch import LaunchDescription
-from launch_ros.actions import Node
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import PathJoinSubstitution
-from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration
-from launch_ros.substitutions import FindPackageShare
+from launch_ros.actions import Node
+from launch.actions import ExecuteProcess
+from ament_index_python.packages import get_package_share_directory
+import os
 
 def generate_launch_description():
-    # Аргумент для задания мира
-    world_arg = DeclareLaunchArgument(
-        'world',
-        default_value=PathJoinSubstitution([
-            FindPackageShare('cart_launch'), 'stage_worlds', 'kalman_map.world'
-        ]),
-        description='Path to the stage world file'
-    )
+    # Get package directories
+    slam_dir = get_package_share_directory('ekf_slam')
+    simple_controller_dir = get_package_share_directory('simple_controller')
+    cart_launch_dir = get_package_share_directory('cart_launch')
 
-    # Узел EKF SLAM
-    ekf_slam_node = Node(
-        package='ekf_slam',
-        executable='ekf_slam',
-        name='ekf_slam',
-        output='screen',
-        remappings=[
-            ('/scan', '/base_scan'),
-            ('/odom', '/robot/odom')
-        ]
-    )
+    # Paths to configuration files
+    param_file_path = os.path.join(simple_controller_dir, 'launch', 'controller.yaml')
+    rviz_config_path = os.path.join(slam_dir, 'launch', 'slam.rviz')
 
-    # Включение запуска симуляции Stage
+    # Include cart_stage launch
     cart_stage_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(PathJoinSubstitution([
-            FindPackageShare('cart_launch'), 'launch', 'cart_stage.launch.py'
-        ])),
-        launch_arguments={'world': LaunchConfiguration('world')}.items()
-    )
-
-    # Узел простого контроллера
-    controller_node = Node(
-        package='simple_controller',
-        executable='controller_node',
-        name='controller',
-        output='log',
-        parameters=[
-            PathJoinSubstitution([
-                FindPackageShare('simple_controller'), 'launch', 'controller.yaml'
-            ])
-        ],
-        remappings=[
-            ('/controller/simple_controller/ground_truth', '/robot/base_pose_ground_truth'),
-            ('/controller/simple_controller/odom', '/robot/odom'),
-            ('steering', '/robot/steering')
-        ]
-    )
-
-    # Узел публикации скорости
-    # vel_pub_node = Node(
-    #     package='rostopic',
-    #     executable='rostopic',
-    #     name='vel_node',
-    #     arguments=['pub', '/robot/velocity', 'std_msgs/Float32', '2.0', '-r1']
-    # )
-    vel_pub_node = Node(
-        package='vel_pub',
-        executable='velocity_publisher',
-        name='vel_node',
-        output='screen'
-    )
-
-
-    # Узел RViz
-    rviz_node = Node(
-        package='rviz2',
-        executable='rviz2',
-        name='rviz',
-        arguments=['--display-config', PathJoinSubstitution([
-            FindPackageShare('ekf_slam'), 'launch', 'slam.rviz'
-        ])]
+        PythonLaunchDescriptionSource(os.path.join(cart_launch_dir, 'launch', 'cart_stage.launch.py')),
+        launch_arguments={
+            'world': os.path.join(cart_launch_dir, 'stage_worlds', 'kalman_map.world'),
+            'control_velocity': 'true',
+            'velocity_noise': '0.0'
+        }.items()
     )
 
     return LaunchDescription([
-        world_arg,
-        ekf_slam_node,
         cart_stage_launch,
-        controller_node,
-        vel_pub_node,
-        rviz_node
+
+        Node(
+            package='simple_controller',
+            executable='controller_node',
+            name='controller',
+            output='log',
+            parameters=[param_file_path],
+            remappings=[
+                ('/controller/simple_controller/ground_truth', '/robot/base_pose_ground_truth'),
+                ('/controller/simple_controller/odom', '/robot/odom'),
+                ('steering', '/robot/steering'),
+            ]
+        ),
+
+        Node(
+            package='vel_pub',
+            executable='velocity_publisher',
+            name='vel_node',
+            output='screen'
+        ),
+
+        Node(
+            package='ekf_slam',
+            executable='ekf_slam',
+            name='ekf_slam',
+            output='screen',
+            remappings=[
+                ('/scan', '/base_scan'),
+                ('/odom', '/robot/odom')
+            ]
+        ),
+
+        ExecuteProcess(
+            cmd=['rviz2', '-d', rviz_config_path],
+            name='rviz2',
+            output='screen',
+        )
     ])

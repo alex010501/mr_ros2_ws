@@ -24,13 +24,14 @@ Slam::Slam(const std::string &ns): Node(ns),
 
     advertize_landmark_publishers();
 
+    double angle_sigma_sqr = this->declare_parameter<double>("angle_sigma_sqr", 0.001);
     Q = Eigen::Matrix2d::Zero();
     Q(0, 0) = this->declare_parameter<double>("range_sigma_sqr", 0.01);
-    Q(1, 1) = this->declare_parameter<double>("angle_sigma_sqr", 0.001);
+    Q(1, 1) = angle_sigma_sqr;
     R = Eigen::Matrix3d::Zero();
     R(0, 0) = this->declare_parameter<double>("x_sigma_sqr", 0.001);
     R(1, 1) = this->declare_parameter<double>("y_sigma_sqr", 0.001);
-    R(2, 2) = this->declare_parameter<double>("angle_sigma_sqr", 0.0001);
+    R(2, 2) = angle_sigma_sqr;
 
     std::cout.precision(4);
 }

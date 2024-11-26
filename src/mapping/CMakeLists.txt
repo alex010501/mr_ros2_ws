@@ -19,8 +19,11 @@ find_package(geometry_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 
+include_directories(include)
+
 # Add source files
-add_executable(mapping src/simple_map.cpp)
+# add_executable(mapping src/simple_map.cpp)
+add_executable(mapping src/map.cpp src/main.cpp)
 ament_target_dependencies(mapping
     rclcpp
     nav_msgs
@@ -36,6 +39,11 @@ install(TARGETS mapping
     RUNTIME DESTINATION lib/${PROJECT_NAME}
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
+)
+
+# Install header files
+install(DIRECTORY include/
+    DESTINATION include/
 )
 
 # Install launch files
