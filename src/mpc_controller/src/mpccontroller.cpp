@@ -140,8 +140,10 @@ namespace mpc_controller
         rclcpp::Time current_time = clock->now();
 
         apply_control();
-
-        update_robot_pose((current_time - robot_time).seconds() + control_dt);
+        if (current_time.get_clock_type() == robot_time.get_clock_type())
+            update_robot_pose((current_time - robot_time).seconds() + control_dt);
+        else
+            RCLCPP_ERROR(this->get_logger(), "Different time sources");
         update_trajectory_segment();
 
         update_control_points();
@@ -172,7 +174,6 @@ namespace mpc_controller
                                 odom->pose.pose.orientation.w);
 
         world_frame_id = odom->header.frame_id;
-        // robot_time = odom->header.stamp;
         robot_time = clock->now();
     }
 
@@ -366,7 +367,7 @@ namespace mpc_controller
         mpc.init(mpc_steps, mpc_dt, max_velocity, max_acc, max_steer_angle, max_steer_rate, wheel_base, kcte, kepsi, kev, ksteer_cost);
 
         // Set the clock type to system time
-        clock = std::make_shared<rclcpp::Clock>(RCL_SYSTEM_TIME);
+        clock = std::make_shared<rclcpp::Clock>(RCL_ROS_TIME);
 
         // Subscriptions
         pose_sub = this->create_subscription<nav_msgs::msg::Odometry>("ground_truth", 1, std::bind(&MPCController::on_pose, this, std::placeholders::_1));

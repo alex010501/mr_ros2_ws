@@ -1,5 +1,14 @@
 # delete previous build
-rm -r build install log
+rm -r build install log ACADOtoolkit/build
+# Rebuild ACADO
+cd ACADOtoolkit
+mkdir build
+cd build
+cmake ..
+make
+sudo make install
+sudo bash acado_env.sh
+cd ../..
 # source ros2
 source /opt/ros/humble/setup.bash
 # build depends

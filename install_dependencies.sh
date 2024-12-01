@@ -7,6 +7,7 @@ cd build
 cmake ..
 make
 sudo make install
+sudo bash acado_env.sh
 # Build other dependencies
 cd ../..
 source /opt/ros/humble/setup.bash
