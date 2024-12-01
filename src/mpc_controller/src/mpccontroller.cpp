@@ -256,15 +256,13 @@ namespace mpc_controller
     void MPCController::publish_trajectory()
     {
         // prepare pointcloud message
-        sensor_msgs::msg::PointCloud msg;
-        msg.header.frame_id = world_frame_id;
-        msg.header.stamp = robot_time;
-        // static int seq(0);
-        // msg.header.seq = seq++;
+        auto msg = std::make_shared<sensor_msgs::msg::PointCloud>();
+        msg->header.frame_id = world_frame_id;
+        msg->header.stamp = clock->now();
 
-        int trajectory_points_quantity = traj_length / traj_dl + 1;
+        double trajectory_points_quantity = traj_length / traj_dl + 1;
         int points_left = trajectory_points_quantity;
-        msg.points.reserve(trajectory_points_quantity);
+        msg->points.reserve(trajectory_points_quantity);
         double publish_len = 0;
         Trajectory::iterator it = current_segment;
         double start_segment_length = current_segment_length;
@@ -273,11 +271,11 @@ namespace mpc_controller
         {
             double segment_length = (*it)->get_length();
             // add points from the segment
-            int segment_points_quantity = std::min<int>(points_left, floor((segment_length - start_segment_length) / traj_dl));
+            int segment_points_quantity = std::min<int>(points_left, std::floor((segment_length - start_segment_length) / traj_dl));
             
             for (int i = 0; i <= segment_points_quantity; ++i)
             {
-                add_point(msg, (*it)->get_point(start_segment_length + i * traj_dl));
+                add_point(*msg, (*it)->get_point(start_segment_length + i * traj_dl));
             }
             points_left -= segment_points_quantity;
             // switch to next segment
@@ -291,45 +289,44 @@ namespace mpc_controller
                     it = trajectory.begin();
             }
         }
-        traj_pub->publish(msg);
+        traj_pub->publish(*msg);
     }
 
     void MPCController::publish_poly()
     {
         // prepare pointcloud message
-        sensor_msgs::msg::PointCloud msg;
-        msg.header.frame_id = world_frame_id;
-        msg.header.stamp = robot_time;
-        // static int seq(0);
-        // msg.header.seq = seq++;
+        auto msg = std::make_shared<sensor_msgs::msg::PointCloud>();
+        msg->header.frame_id = world_frame_id;
+        msg->header.stamp = clock->now();
+
         double xrange = control_points_dl * control_points_num * 1.5;
         int trajectory_points_quantity = xrange / traj_dl;
-        msg.points.reserve(trajectory_points_quantity);
+        msg->points.reserve(trajectory_points_quantity);
 
         for (int i = 0; i < trajectory_points_quantity; ++i)
         {
             double x = i * traj_dl;
             tf2::Vector3 point = robot2world(tf2::Vector3(x, polyeval(x), 0));
-            add_point(msg, point);
+            add_point(*msg, point);
         }
-        poly_pub->publish(msg);
+        poly_pub->publish(*msg);
     }
 
     void MPCController::publish_mpc_traj(std::vector<double> &x, std::vector<double> &y)
     {
         if (x.empty())
             return;
-        sensor_msgs::msg::PointCloud msg;
-        msg.header.frame_id = world_frame_id;
-        msg.header.stamp = robot_time;
-        // static int seq(0);
-        // msg.header.seq = seq++;
-        msg.points.reserve(x.size());
+        
+        auto msg = std::make_shared<sensor_msgs::msg::PointCloud>();
+        msg->header.frame_id = world_frame_id;
+        msg->header.stamp = clock->now();
+        
+        msg->points.reserve(x.size());
         for (int i = 0; i < x.size(); ++i)
         {
-            add_point(msg, robot2world(tf2::Vector3(x[i], y[i], 0)));
+            add_point(*msg, robot2world(tf2::Vector3(x[i], y[i], 0)));
         }
-        mpc_traj_pub->publish(msg);
+        mpc_traj_pub->publish(*msg);
     }
 
     /*!
