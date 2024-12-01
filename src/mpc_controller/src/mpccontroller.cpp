@@ -172,8 +172,6 @@ namespace mpc_controller
         robot_y = odom->pose.pose.position.y;
         robot_theta = 2 * atan2(odom->pose.pose.orientation.z,
                                 odom->pose.pose.orientation.w);
-
-        world_frame_id = odom->header.frame_id;
         robot_time = clock->now();
     }
 
@@ -257,7 +255,7 @@ namespace mpc_controller
     {
         // prepare pointcloud message
         auto msg = std::make_shared<sensor_msgs::msg::PointCloud>();
-        msg->header.frame_id = world_frame_id;
+        msg->header.frame_id = "odom";
         msg->header.stamp = clock->now();
 
         double trajectory_points_quantity = traj_length / traj_dl + 1;
@@ -296,7 +294,7 @@ namespace mpc_controller
     {
         // prepare pointcloud message
         auto msg = std::make_shared<sensor_msgs::msg::PointCloud>();
-        msg->header.frame_id = world_frame_id;
+        msg->header.frame_id = "odom";
         msg->header.stamp = clock->now();
 
         double xrange = control_points_dl * control_points_num * 1.5;
@@ -318,7 +316,7 @@ namespace mpc_controller
             return;
         
         auto msg = std::make_shared<sensor_msgs::msg::PointCloud>();
-        msg->header.frame_id = world_frame_id;
+        msg->header.frame_id = "odom";
         msg->header.stamp = clock->now();
         
         msg->points.reserve(x.size());
