@@ -66,7 +66,7 @@ Visualization Manager:
       Axes Length: 1
       Axes Radius: 0.10000000149011612
       Class: rviz_default_plugins/Pose
-      Color: 85; 255; 0
+      Color: 255; 0; 0
       Enabled: true
       Head Length: 1
       Head Radius: 1
@@ -90,7 +90,7 @@ Visualization Manager:
       Enabled: true
       Head Length: 1
       Head Radius: 1
-      Name: robot_pose
+      Name: Landmark0
       Shaft Length: 0
       Shaft Radius: 1
       Shape: Arrow
@@ -110,7 +110,7 @@ Visualization Manager:
       Enabled: true
       Head Length: 1
       Head Radius: 1
-      Name: robot_pose
+      Name: Landmark1
       Shaft Length: 0
       Shaft Radius: 1
       Shape: Arrow
@@ -130,7 +130,7 @@ Visualization Manager:
       Enabled: true
       Head Length: 1
       Head Radius: 1
-      Name: robot_pose
+      Name: Landmark2
       Shaft Length: 0
       Shaft Radius: 1
       Shape: Arrow
@@ -150,7 +150,7 @@ Visualization Manager:
       Enabled: true
       Head Length: 1
       Head Radius: 1
-      Name: robot_pose
+      Name: Landmark3
       Shaft Length: 0
       Shaft Radius: 1
       Shape: Arrow
@@ -170,7 +170,7 @@ Visualization Manager:
       Enabled: true
       Head Length: 1
       Head Radius: 1
-      Name: robot_pose
+      Name: Landmark4
       Shaft Length: 0
       Shaft Radius: 1
       Shape: Arrow
@@ -190,7 +190,7 @@ Visualization Manager:
       Enabled: true
       Head Length: 1
       Head Radius: 1
-      Name: robot_pose
+      Name: Landmark5
       Shaft Length: 0
       Shaft Radius: 1
       Shape: Arrow
@@ -210,7 +210,7 @@ Visualization Manager:
       Enabled: true
       Head Length: 1
       Head Radius: 1
-      Name: robot_pose
+      Name: Landmark6
       Shaft Length: 0
       Shaft Radius: 1
       Shape: Arrow
@@ -230,7 +230,7 @@ Visualization Manager:
       Enabled: true
       Head Length: 1
       Head Radius: 1
-      Name: robot_pose
+      Name: Landmark7
       Shaft Length: 0
       Shaft Radius: 1
       Shape: Arrow
@@ -250,7 +250,7 @@ Visualization Manager:
       Enabled: true
       Head Length: 1
       Head Radius: 1
-      Name: robot_pose
+      Name: Landmark8
       Shaft Length: 0
       Shaft Radius: 1
       Shape: Arrow
@@ -270,7 +270,7 @@ Visualization Manager:
       Enabled: true
       Head Length: 1
       Head Radius: 1
-      Name: robot_pose
+      Name: Landmark9
       Shaft Length: 0
       Shaft Radius: 1
       Shape: Arrow
@@ -290,7 +290,7 @@ Visualization Manager:
       Enabled: true
       Head Length: 1
       Head Radius: 1
-      Name: robot_pose
+      Name: Landmark10
       Shaft Length: 0
       Shaft Radius: 1
       Shape: Arrow
@@ -310,7 +310,7 @@ Visualization Manager:
       Enabled: true
       Head Length: 1
       Head Radius: 1
-      Name: robot_pose
+      Name: Landmark11
       Shaft Length: 0
       Shaft Radius: 1
       Shape: Arrow
