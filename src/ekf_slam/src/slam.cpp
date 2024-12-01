@@ -316,7 +316,7 @@ void Slam::on_scan(const sensor_msgs::msg::LaserScan &scan)
             }
         }
     }
-    publish_results("map", scan.header.stamp);
+    publish_results("odom", scan.header.stamp);
     publish_transform(scan.header);
 }
 

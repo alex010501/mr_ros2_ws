@@ -45,10 +45,9 @@ def generate_launch_description():
             executable='ekf_slam',
             name='ekf_slam',
             output='screen',
-            # remappings=[
-            #     ('/scan', '/base_scan'),
-            #     ('/odom', '/robot/odom')
-            # ]
+            remappings=[
+                ('/scan', '/base_scan')
+            ]
         ),
 
         # ExecuteProcess to launch RQT
