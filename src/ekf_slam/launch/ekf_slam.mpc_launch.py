@@ -39,6 +39,16 @@ def generate_launch_description():
             parameters=[{'use_sim_time': True}, param_file_path],
             output='screen'
         ),
+        
+        Node(
+            package='mapping',
+            executable='mapping',
+            name='map',
+            output='screen',
+            remappings=[
+                ('scan', 'base_scan'),
+            ]
+        ),
 
         Node(
             package='ekf_slam',
