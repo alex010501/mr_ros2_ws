@@ -158,7 +158,8 @@ namespace mpc_controller
         mpc.solve(current_linear_velocity, cmd_steer_angle, control_coefs, cmd_steer_rate, cmd_acc, mpc_x, mpc_y);
         double solve_time = (clock->now() - start_solve).seconds();
         RCLCPP_DEBUG(this->get_logger(), "solve time = %f", solve_time);
-        RCLCPP_ERROR(this->get_logger(), "Solve time too big %f", solve_time);
+        if (solve_time > 0.08)
+            RCLCPP_ERROR(this->get_logger(), "Solve time too big %f", solve_time);
         publish_trajectory();
         publish_poly();
         // send error for debug proposes

@@ -1,5 +1,5 @@
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
+from launch.actions import IncludeLaunchDescription, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 from launch.actions import ExecuteProcess
@@ -27,18 +27,25 @@ def generate_launch_description():
         }.items()
     )
 
+    delayed_mpc_node = TimerAction(
+        period = 1.0,  # Delay in seconds
+        actions = [
+            Node(
+                package='mpc_controller',
+                executable='mpc_controller',
+                name='controller',
+                parameters=[{'use_sim_time': True}, param_file_path],
+                output='screen'
+            )
+        ]
+    )
+
     return LaunchDescription([
         # Include cart_stage.launch.py
         cart_stage_launch,
 
         # Node for the MPC controller
-        Node(
-            package='mpc_controller',
-            executable='mpc_controller',
-            name='controller',
-            parameters=[{'use_sim_time': True}, param_file_path],
-            output='screen'
-        ),
+        delayed_mpc_node,
         
         Node(
             package='mapping',
